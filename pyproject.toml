@@ -1,6 +1,6 @@
 [project]
 name = "studylife-cli"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Command-line client for StudyLife (self-hosted study organizer) - notes, sessions, course goals, and webhooks from your terminal."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -24,8 +24,14 @@ dev-dependencies = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/studylife_cli/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/studylife_cli"]

@@ -51,11 +51,32 @@ class CliState:
     as_json: bool
 
 
+def _print_version_and_exit(value: bool) -> None:
+    if not value:
+        return
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        console.print(version("studylife-cli"))
+    except PackageNotFoundError:
+        # Editable/uninstalled checkout (e.g. `uv run` before a build has ever run) - hatch-vcs
+        # only writes package metadata as part of a real build/install, not on a bare source tree.
+        console.print("unknown (not installed from a built package)")
+    raise typer.Exit()
+
+
 @app.callback()
 def main(
     ctx: typer.Context,
     as_json: bool = typer.Option(
         False, "--json", help="Print machine-readable JSON instead of a table."
+    ),
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_print_version_and_exit,
+        is_eager=True,
+        help="Show the installed version and exit.",
     ),
 ) -> None:
     ctx.obj = CliState(as_json=as_json)
@@ -85,6 +106,17 @@ def _print(ctx: typer.Context, rows: list[dict[str, object]], title: str) -> Non
     for row in rows:
         table.add_row(*(str(value) if value is not None else "" for value in row.values()))
     console.print(table)
+
+
+def _confirm(ctx: typer.Context, payload: dict[str, object], message: str) -> None:
+    """Reports the outcome of a create/edit/delete command - the full affected resource (or, for
+    a delete, just its id) as JSON with --json, otherwise the same short human message every
+    mutation command already printed."""
+    state: CliState = ctx.obj
+    if state.as_json:
+        print(json_module.dumps(payload, indent=2, default=str))
+    else:
+        console.print(message)
 
 
 def _run(ctx: typer.Context, fn: object) -> object:
@@ -151,7 +183,7 @@ def notes_create(
     note = _run(
         ctx, lambda c: c.create_note(Note(title=title, content=content, course_id=course_id))
     )
-    console.print(f"Created note {note.id}.")
+    _confirm(ctx, note.model_dump(mode="json"), f"Created note {note.id}.")
 
 
 @notes_app.command("edit")
@@ -166,13 +198,13 @@ def notes_edit(
         ctx,
         lambda c: c.update_note(note_id, Note(title=title, content=content, course_id=course_id)),
     )
-    console.print(f"Updated note {note.id}.")
+    _confirm(ctx, note.model_dump(mode="json"), f"Updated note {note.id}.")
 
 
 @notes_app.command("delete")
 def notes_delete(ctx: typer.Context, note_id: int) -> None:
     _run(ctx, lambda c: c.delete_note(note_id))
-    console.print(f"Deleted note {note_id}.")
+    _confirm(ctx, {"deleted": note_id}, f"Deleted note {note_id}.")
 
 
 # -- Sessions -----------------------------------------------------------------------
@@ -217,7 +249,7 @@ def sessions_create(
             )
         ),
     )
-    console.print(f"Created session {session.id}.")
+    _confirm(ctx, session.model_dump(mode="json"), f"Created session {session.id}.")
 
 
 @sessions_app.command("edit")
@@ -245,13 +277,13 @@ def sessions_edit(
             ),
         ),
     )
-    console.print(f"Updated session {session.id}.")
+    _confirm(ctx, session.model_dump(mode="json"), f"Updated session {session.id}.")
 
 
 @sessions_app.command("delete")
 def sessions_delete(ctx: typer.Context, session_id: int) -> None:
     _run(ctx, lambda c: c.delete_session(session_id))
-    console.print(f"Deleted session {session_id}.")
+    _confirm(ctx, {"deleted": session_id}, f"Deleted session {session_id}.")
 
 
 # -- Course goals -------------------------------------------------------------------
@@ -289,13 +321,13 @@ def goals_set(
             ),
         ),
     )
-    console.print(f"Saved goal for course {goal.course_id}.")
+    _confirm(ctx, goal.model_dump(mode="json"), f"Saved goal for course {goal.course_id}.")
 
 
 @goals_app.command("delete")
 def goals_delete(ctx: typer.Context, course_id: int) -> None:
     _run(ctx, lambda c: c.delete_course_goal(course_id))
-    console.print(f"Deleted goal for course {course_id}.")
+    _confirm(ctx, {"deleted": course_id}, f"Deleted goal for course {course_id}.")
 
 
 # -- Timer ----------------------------------------------------------------------------
@@ -341,13 +373,13 @@ def webhooks_list(ctx: typer.Context) -> None:
 @webhooks_app.command("create")
 def webhooks_create(ctx: typer.Context, target_url: str, events: list[str]) -> None:
     webhook = _run(ctx, lambda c: c.create_webhook(target_url, events))
-    console.print(f"Created webhook {webhook.id}.")
+    _confirm(ctx, webhook.model_dump(mode="json"), f"Created webhook {webhook.id}.")
 
 
 @webhooks_app.command("delete")
 def webhooks_delete(ctx: typer.Context, webhook_id: str) -> None:
     _run(ctx, lambda c: c.delete_webhook(webhook_id))
-    console.print(f"Deleted webhook {webhook_id}.")
+    _confirm(ctx, {"deleted": webhook_id}, f"Deleted webhook {webhook_id}.")
 
 
 def run() -> None:
