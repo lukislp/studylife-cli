@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/lukislp/studylife-cli/compare/v1.1.0...v1.1.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* make --json work after the subcommand, not just before it ([b5fdc1b](https://github.com/lukislp/studylife-cli/commit/b5fdc1b7fb143dcad907585a66c363ddaa6e1550))
+
 # [1.1.0](https://github.com/lukislp/studylife-cli/compare/v1.0.0...v1.1.0) (2026-08-29)
 
 
