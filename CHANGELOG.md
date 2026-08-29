@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/lukislp/studylife-cli/compare/v1.1.1...v1.2.0) (2026-08-29)
+
+
+### Features
+
+* add verb-first command aliases, trim default table columns ([1c0971e](https://github.com/lukislp/studylife-cli/commit/1c0971ea3ba05f85f0ce49e438c87e7201339dd9))
+
 ## [1.1.1](https://github.com/lukislp/studylife-cli/compare/v1.1.0...v1.1.1) (2026-08-29)
 
 
