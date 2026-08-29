@@ -51,6 +51,19 @@ class CliState:
     as_json: bool
 
 
+# Click/Typer options declared on the root app's callback only parse when given BEFORE the
+# subcommand (`studylife --json notes list`), not after (`studylife notes list --json`) - each
+# subcommand has its own parser that doesn't know about the parent's options. Re-declaring the
+# same flag on every leaf command and OR-ing it with the root-level one (see _use_json below)
+# makes both orders work, matching how most people instinctively type it.
+JSON_OPTION = typer.Option(False, "--json", help="Print machine-readable JSON instead of a table.")
+
+
+def _use_json(ctx: typer.Context, local: bool) -> bool:
+    state: CliState = ctx.obj
+    return state.as_json or local
+
+
 def _print_version_and_exit(value: bool) -> None:
     if not value:
         return
@@ -92,9 +105,8 @@ def _require_client(ctx: typer.Context) -> StudyLifeClient:
     return StudyLifeClient(credentials.instance_url, credentials.api_key)
 
 
-def _print(ctx: typer.Context, rows: list[dict[str, object]], title: str) -> None:
-    state: CliState = ctx.obj
-    if state.as_json:
+def _print(as_json: bool, rows: list[dict[str, object]], title: str) -> None:
+    if as_json:
         print(json_module.dumps(rows, indent=2, default=str))
         return
     if not rows:
@@ -108,12 +120,11 @@ def _print(ctx: typer.Context, rows: list[dict[str, object]], title: str) -> Non
     console.print(table)
 
 
-def _confirm(ctx: typer.Context, payload: dict[str, object], message: str) -> None:
+def _confirm(as_json: bool, payload: dict[str, object], message: str) -> None:
     """Reports the outcome of a create/edit/delete command - the full affected resource (or, for
     a delete, just its id) as JSON with --json, otherwise the same short human message every
     mutation command already printed."""
-    state: CliState = ctx.obj
-    if state.as_json:
+    if as_json:
         print(json_module.dumps(payload, indent=2, default=str))
     else:
         console.print(message)
@@ -162,15 +173,15 @@ def logout() -> None:
 
 
 @notes_app.command("list")
-def notes_list(ctx: typer.Context) -> None:
+def notes_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     notes = _run(ctx, lambda c: c.list_notes())
-    _print(ctx, [n.model_dump(mode="json") for n in notes], "Notes")
+    _print(_use_json(ctx, as_json), [n.model_dump(mode="json") for n in notes], "Notes")
 
 
 @notes_app.command("search")
-def notes_search(ctx: typer.Context, query: str) -> None:
+def notes_search(ctx: typer.Context, query: str, as_json: bool = JSON_OPTION) -> None:
     notes = _run(ctx, lambda c: c.search_notes(query))
-    _print(ctx, [n.model_dump(mode="json") for n in notes], "Notes")
+    _print(_use_json(ctx, as_json), [n.model_dump(mode="json") for n in notes], "Notes")
 
 
 @notes_app.command("create")
@@ -179,11 +190,12 @@ def notes_create(
     title: str,
     content: str,
     course_id: int | None = typer.Option(None, help="Course to attach this note to."),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     note = _run(
         ctx, lambda c: c.create_note(Note(title=title, content=content, course_id=course_id))
     )
-    _confirm(ctx, note.model_dump(mode="json"), f"Created note {note.id}.")
+    _confirm(_use_json(ctx, as_json), note.model_dump(mode="json"), f"Created note {note.id}.")
 
 
 @notes_app.command("edit")
@@ -193,27 +205,28 @@ def notes_edit(
     title: str,
     content: str,
     course_id: int | None = typer.Option(None),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     note = _run(
         ctx,
         lambda c: c.update_note(note_id, Note(title=title, content=content, course_id=course_id)),
     )
-    _confirm(ctx, note.model_dump(mode="json"), f"Updated note {note.id}.")
+    _confirm(_use_json(ctx, as_json), note.model_dump(mode="json"), f"Updated note {note.id}.")
 
 
 @notes_app.command("delete")
-def notes_delete(ctx: typer.Context, note_id: int) -> None:
+def notes_delete(ctx: typer.Context, note_id: int, as_json: bool = JSON_OPTION) -> None:
     _run(ctx, lambda c: c.delete_note(note_id))
-    _confirm(ctx, {"deleted": note_id}, f"Deleted note {note_id}.")
+    _confirm(_use_json(ctx, as_json), {"deleted": note_id}, f"Deleted note {note_id}.")
 
 
 # -- Sessions -----------------------------------------------------------------------
 
 
 @sessions_app.command("list")
-def sessions_list(ctx: typer.Context) -> None:
+def sessions_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     sessions = _run(ctx, lambda c: c.list_sessions())
-    _print(ctx, [s.model_dump(mode="json") for s in sessions], "Sessions")
+    _print(_use_json(ctx, as_json), [s.model_dump(mode="json") for s in sessions], "Sessions")
 
 
 @sessions_app.command("history")
@@ -221,9 +234,12 @@ def sessions_history(
     ctx: typer.Context,
     days: int | None = typer.Option(None),
     only_completed: bool | None = typer.Option(None, "--only-completed/--all"),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     sessions = _run(ctx, lambda c: c.session_history(days=days, only_completed=only_completed))
-    _print(ctx, [s.model_dump(mode="json") for s in sessions], "Session history")
+    _print(
+        _use_json(ctx, as_json), [s.model_dump(mode="json") for s in sessions], "Session history"
+    )
 
 
 @sessions_app.command("create")
@@ -235,6 +251,7 @@ def sessions_create(
     topic: str | None = typer.Option(None),
     notes: str | None = typer.Option(None),
     completed: bool = typer.Option(False),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     session = _run(
         ctx,
@@ -249,7 +266,9 @@ def sessions_create(
             )
         ),
     )
-    _confirm(ctx, session.model_dump(mode="json"), f"Created session {session.id}.")
+    _confirm(
+        _use_json(ctx, as_json), session.model_dump(mode="json"), f"Created session {session.id}."
+    )
 
 
 @sessions_app.command("edit")
@@ -262,6 +281,7 @@ def sessions_edit(
     topic: str | None = typer.Option(None),
     notes: str | None = typer.Option(None),
     completed: bool = typer.Option(False),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     session = _run(
         ctx,
@@ -277,22 +297,24 @@ def sessions_edit(
             ),
         ),
     )
-    _confirm(ctx, session.model_dump(mode="json"), f"Updated session {session.id}.")
+    _confirm(
+        _use_json(ctx, as_json), session.model_dump(mode="json"), f"Updated session {session.id}."
+    )
 
 
 @sessions_app.command("delete")
-def sessions_delete(ctx: typer.Context, session_id: int) -> None:
+def sessions_delete(ctx: typer.Context, session_id: int, as_json: bool = JSON_OPTION) -> None:
     _run(ctx, lambda c: c.delete_session(session_id))
-    _confirm(ctx, {"deleted": session_id}, f"Deleted session {session_id}.")
+    _confirm(_use_json(ctx, as_json), {"deleted": session_id}, f"Deleted session {session_id}.")
 
 
 # -- Course goals -------------------------------------------------------------------
 
 
 @goals_app.command("list")
-def goals_list(ctx: typer.Context) -> None:
+def goals_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     goals = _run(ctx, lambda c: c.list_course_goals())
-    _print(ctx, [g.model_dump(mode="json") for g in goals], "Course goals")
+    _print(_use_json(ctx, as_json), [g.model_dump(mode="json") for g in goals], "Course goals")
 
 
 @goals_app.command("set")
@@ -305,6 +327,7 @@ def goals_set(
     grade: float | None = typer.Option(None, help="German grading, 1.0 (best) to 5.0 (failed)."),
     completed_topics: str = typer.Option("", help="Comma-separated topic names."),
     tag: str | None = typer.Option(None),
+    as_json: bool = JSON_OPTION,
 ) -> None:
     goal = _run(
         ctx,
@@ -321,65 +344,75 @@ def goals_set(
             ),
         ),
     )
-    _confirm(ctx, goal.model_dump(mode="json"), f"Saved goal for course {goal.course_id}.")
+    _confirm(
+        _use_json(ctx, as_json),
+        goal.model_dump(mode="json"),
+        f"Saved goal for course {goal.course_id}.",
+    )
 
 
 @goals_app.command("delete")
-def goals_delete(ctx: typer.Context, course_id: int) -> None:
+def goals_delete(ctx: typer.Context, course_id: int, as_json: bool = JSON_OPTION) -> None:
     _run(ctx, lambda c: c.delete_course_goal(course_id))
-    _confirm(ctx, {"deleted": course_id}, f"Deleted goal for course {course_id}.")
+    _confirm(
+        _use_json(ctx, as_json), {"deleted": course_id}, f"Deleted goal for course {course_id}."
+    )
 
 
 # -- Timer ----------------------------------------------------------------------------
 
 
 @app.command()
-def timer(ctx: typer.Context) -> None:
+def timer(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     """Show the current timer state."""
     state = _run(ctx, lambda c: c.get_timer_state())
-    _print(ctx, [state.model_dump(mode="json")], "Timer state")
+    _print(_use_json(ctx, as_json), [state.model_dump(mode="json")], "Timer state")
 
 
 # -- Courses / study programs --------------------------------------------------------
 
 
 @courses_app.command("list")
-def courses_list(ctx: typer.Context) -> None:
+def courses_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     courses = _run(ctx, lambda c: c.list_courses())
-    _print(ctx, [c.model_dump(mode="json") for c in courses], "Courses")
+    _print(_use_json(ctx, as_json), [c.model_dump(mode="json") for c in courses], "Courses")
 
 
 @programs_app.command("list")
-def programs_list(ctx: typer.Context) -> None:
+def programs_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     programs = _run(ctx, lambda c: c.list_study_programs())
-    _print(ctx, [p.model_dump(mode="json") for p in programs], "Study programs")
+    _print(_use_json(ctx, as_json), [p.model_dump(mode="json") for p in programs], "Study programs")
 
 
 @programs_app.command("get")
-def programs_get(ctx: typer.Context, program_id: int) -> None:
+def programs_get(ctx: typer.Context, program_id: int, as_json: bool = JSON_OPTION) -> None:
     program = _run(ctx, lambda c: c.get_study_program(program_id))
-    _print(ctx, [program.model_dump(mode="json")], "Study program")
+    _print(_use_json(ctx, as_json), [program.model_dump(mode="json")], "Study program")
 
 
 # -- Webhooks ---------------------------------------------------------------------------
 
 
 @webhooks_app.command("list")
-def webhooks_list(ctx: typer.Context) -> None:
+def webhooks_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     webhooks = _run(ctx, lambda c: c.list_webhooks())
-    _print(ctx, [w.model_dump(mode="json") for w in webhooks], "Webhooks")
+    _print(_use_json(ctx, as_json), [w.model_dump(mode="json") for w in webhooks], "Webhooks")
 
 
 @webhooks_app.command("create")
-def webhooks_create(ctx: typer.Context, target_url: str, events: list[str]) -> None:
+def webhooks_create(
+    ctx: typer.Context, target_url: str, events: list[str], as_json: bool = JSON_OPTION
+) -> None:
     webhook = _run(ctx, lambda c: c.create_webhook(target_url, events))
-    _confirm(ctx, webhook.model_dump(mode="json"), f"Created webhook {webhook.id}.")
+    _confirm(
+        _use_json(ctx, as_json), webhook.model_dump(mode="json"), f"Created webhook {webhook.id}."
+    )
 
 
 @webhooks_app.command("delete")
-def webhooks_delete(ctx: typer.Context, webhook_id: str) -> None:
+def webhooks_delete(ctx: typer.Context, webhook_id: str, as_json: bool = JSON_OPTION) -> None:
     _run(ctx, lambda c: c.delete_webhook(webhook_id))
-    _confirm(ctx, {"deleted": webhook_id}, f"Deleted webhook {webhook_id}.")
+    _confirm(_use_json(ctx, as_json), {"deleted": webhook_id}, f"Deleted webhook {webhook_id}.")
 
 
 def run() -> None:
