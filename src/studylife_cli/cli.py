@@ -64,6 +64,17 @@ def _use_json(ctx: typer.Context, local: bool) -> bool:
     return state.as_json or local
 
 
+# Table-view field whitelists, one per resource type shown by a list/search/history command -
+# the full field set (used unconditionally by --json) is often too wide for a terminal (a note's
+# content, a session's course_color, a course's full topic list). Deliberately not applied to
+# create/edit/delete confirmations (_confirm) or to single-item "get" views - those already show
+# one thing at a time and benefit from seeing everything.
+NOTE_TABLE_COLUMNS = ["id", "title", "course_id", "updated_at"]
+SESSION_TABLE_COLUMNS = ["id", "course_name", "start_time", "end_time", "topic", "is_completed"]
+COURSE_GOAL_TABLE_COLUMNS = ["course_id", "course_name", "target_date", "grade", "tag"]
+COURSE_TABLE_COLUMNS = ["id", "name", "code", "semester", "ects"]
+
+
 def _print_version_and_exit(value: bool) -> None:
     if not value:
         return
@@ -105,17 +116,23 @@ def _require_client(ctx: typer.Context) -> StudyLifeClient:
     return StudyLifeClient(credentials.instance_url, credentials.api_key)
 
 
-def _print(as_json: bool, rows: list[dict[str, object]], title: str) -> None:
+def _print(
+    as_json: bool, rows: list[dict[str, object]], title: str, columns: list[str] | None = None
+) -> None:
+    """columns restricts which fields the TABLE view shows (a resource can have far more fields
+    than fit a terminal - e.g. a note's full content, or a session's course_color) - --json always
+    returns every field regardless, since a table's readability limit doesn't apply there."""
     if as_json:
         print(json_module.dumps(rows, indent=2, default=str))
         return
     if not rows:
         console.print(f"No {title.lower()}.")
         return
+    display_rows = [{k: row.get(k) for k in columns} for row in rows] if columns else rows
     table = Table(title=title)
-    for key in rows[0]:
+    for key in display_rows[0]:
         table.add_column(key)
-    for row in rows:
+    for row in display_rows:
         table.add_row(*(str(value) if value is not None else "" for value in row.values()))
     console.print(table)
 
@@ -174,14 +191,26 @@ def logout() -> None:
 
 @notes_app.command("list")
 def notes_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """List notes. Table view shows a few fields - use --json for every field."""
     notes = _run(ctx, lambda c: c.list_notes())
-    _print(_use_json(ctx, as_json), [n.model_dump(mode="json") for n in notes], "Notes")
+    _print(
+        _use_json(ctx, as_json),
+        [n.model_dump(mode="json") for n in notes],
+        "Notes",
+        columns=NOTE_TABLE_COLUMNS,
+    )
 
 
 @notes_app.command("search")
 def notes_search(ctx: typer.Context, query: str, as_json: bool = JSON_OPTION) -> None:
+    """Search notes by title/content."""
     notes = _run(ctx, lambda c: c.search_notes(query))
-    _print(_use_json(ctx, as_json), [n.model_dump(mode="json") for n in notes], "Notes")
+    _print(
+        _use_json(ctx, as_json),
+        [n.model_dump(mode="json") for n in notes],
+        "Notes",
+        columns=NOTE_TABLE_COLUMNS,
+    )
 
 
 @notes_app.command("create")
@@ -192,6 +221,7 @@ def notes_create(
     course_id: int | None = typer.Option(None, help="Course to attach this note to."),
     as_json: bool = JSON_OPTION,
 ) -> None:
+    """Create a note."""
     note = _run(
         ctx, lambda c: c.create_note(Note(title=title, content=content, course_id=course_id))
     )
@@ -207,6 +237,7 @@ def notes_edit(
     course_id: int | None = typer.Option(None),
     as_json: bool = JSON_OPTION,
 ) -> None:
+    """Edit a note. Replaces title/content/course_id entirely (not a partial patch)."""
     note = _run(
         ctx,
         lambda c: c.update_note(note_id, Note(title=title, content=content, course_id=course_id)),
@@ -216,6 +247,7 @@ def notes_edit(
 
 @notes_app.command("delete")
 def notes_delete(ctx: typer.Context, note_id: int, as_json: bool = JSON_OPTION) -> None:
+    """Delete a note."""
     _run(ctx, lambda c: c.delete_note(note_id))
     _confirm(_use_json(ctx, as_json), {"deleted": note_id}, f"Deleted note {note_id}.")
 
@@ -225,8 +257,14 @@ def notes_delete(ctx: typer.Context, note_id: int, as_json: bool = JSON_OPTION) 
 
 @sessions_app.command("list")
 def sessions_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """List sessions. Unbounded - use `sessions history` for a long-term window."""
     sessions = _run(ctx, lambda c: c.list_sessions())
-    _print(_use_json(ctx, as_json), [s.model_dump(mode="json") for s in sessions], "Sessions")
+    _print(
+        _use_json(ctx, as_json),
+        [s.model_dump(mode="json") for s in sessions],
+        "Sessions",
+        columns=SESSION_TABLE_COLUMNS,
+    )
 
 
 @sessions_app.command("history")
@@ -236,9 +274,13 @@ def sessions_history(
     only_completed: bool | None = typer.Option(None, "--only-completed/--all"),
     as_json: bool = JSON_OPTION,
 ) -> None:
+    """Long-term session history, default 1 year of completed sessions."""
     sessions = _run(ctx, lambda c: c.session_history(days=days, only_completed=only_completed))
     _print(
-        _use_json(ctx, as_json), [s.model_dump(mode="json") for s in sessions], "Session history"
+        _use_json(ctx, as_json),
+        [s.model_dump(mode="json") for s in sessions],
+        "Session history",
+        columns=SESSION_TABLE_COLUMNS,
     )
 
 
@@ -253,6 +295,7 @@ def sessions_create(
     completed: bool = typer.Option(False),
     as_json: bool = JSON_OPTION,
 ) -> None:
+    """Create a study session."""
     session = _run(
         ctx,
         lambda c: c.create_session(
@@ -283,6 +326,7 @@ def sessions_edit(
     completed: bool = typer.Option(False),
     as_json: bool = JSON_OPTION,
 ) -> None:
+    """Edit a session. Replaces every field entirely (not a partial patch)."""
     session = _run(
         ctx,
         lambda c: c.update_session(
@@ -304,6 +348,7 @@ def sessions_edit(
 
 @sessions_app.command("delete")
 def sessions_delete(ctx: typer.Context, session_id: int, as_json: bool = JSON_OPTION) -> None:
+    """Delete a session."""
     _run(ctx, lambda c: c.delete_session(session_id))
     _confirm(_use_json(ctx, as_json), {"deleted": session_id}, f"Deleted session {session_id}.")
 
@@ -313,8 +358,14 @@ def sessions_delete(ctx: typer.Context, session_id: int, as_json: bool = JSON_OP
 
 @goals_app.command("list")
 def goals_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """List course goals."""
     goals = _run(ctx, lambda c: c.list_course_goals())
-    _print(_use_json(ctx, as_json), [g.model_dump(mode="json") for g in goals], "Course goals")
+    _print(
+        _use_json(ctx, as_json),
+        [g.model_dump(mode="json") for g in goals],
+        "Course goals",
+        columns=COURSE_GOAL_TABLE_COLUMNS,
+    )
 
 
 @goals_app.command("set")
@@ -329,6 +380,8 @@ def goals_set(
     tag: str | None = typer.Option(None),
     as_json: bool = JSON_OPTION,
 ) -> None:
+    """Set (create or fully replace) the goal for a course. Every field not passed is cleared,
+    not left as-is - this mirrors the server's own full-replace PUT semantics."""
     goal = _run(
         ctx,
         lambda c: c.save_course_goal(
@@ -353,6 +406,7 @@ def goals_set(
 
 @goals_app.command("delete")
 def goals_delete(ctx: typer.Context, course_id: int, as_json: bool = JSON_OPTION) -> None:
+    """Delete a course's goal."""
     _run(ctx, lambda c: c.delete_course_goal(course_id))
     _confirm(
         _use_json(ctx, as_json), {"deleted": course_id}, f"Deleted goal for course {course_id}."
@@ -374,18 +428,27 @@ def timer(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
 
 @courses_app.command("list")
 def courses_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """List courses in the active study program."""
     courses = _run(ctx, lambda c: c.list_courses())
-    _print(_use_json(ctx, as_json), [c.model_dump(mode="json") for c in courses], "Courses")
+    _print(
+        _use_json(ctx, as_json),
+        [c.model_dump(mode="json") for c in courses],
+        "Courses",
+        columns=COURSE_TABLE_COLUMNS,
+    )
 
 
 @programs_app.command("list")
 def programs_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """List study programs (built-in and custom)."""
     programs = _run(ctx, lambda c: c.list_study_programs())
     _print(_use_json(ctx, as_json), [p.model_dump(mode="json") for p in programs], "Study programs")
 
 
 @programs_app.command("get")
 def programs_get(ctx: typer.Context, program_id: int, as_json: bool = JSON_OPTION) -> None:
+    """Get a custom study program's detail (course groups/ECTS quotas). Only applies to custom
+    programs - the built-in program has no id and no detail endpoint."""
     program = _run(ctx, lambda c: c.get_study_program(program_id))
     _print(_use_json(ctx, as_json), [program.model_dump(mode="json")], "Study program")
 
@@ -395,6 +458,7 @@ def programs_get(ctx: typer.Context, program_id: int, as_json: bool = JSON_OPTIO
 
 @webhooks_app.command("list")
 def webhooks_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """List registered webhooks."""
     webhooks = _run(ctx, lambda c: c.list_webhooks())
     _print(_use_json(ctx, as_json), [w.model_dump(mode="json") for w in webhooks], "Webhooks")
 
@@ -403,6 +467,7 @@ def webhooks_list(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
 def webhooks_create(
     ctx: typer.Context, target_url: str, events: list[str], as_json: bool = JSON_OPTION
 ) -> None:
+    """Register a webhook. events is one or more event type names, e.g. session.completed."""
     webhook = _run(ctx, lambda c: c.create_webhook(target_url, events))
     _confirm(
         _use_json(ctx, as_json), webhook.model_dump(mode="json"), f"Created webhook {webhook.id}."
@@ -411,8 +476,66 @@ def webhooks_create(
 
 @webhooks_app.command("delete")
 def webhooks_delete(ctx: typer.Context, webhook_id: str, as_json: bool = JSON_OPTION) -> None:
+    """Delete a webhook."""
     _run(ctx, lambda c: c.delete_webhook(webhook_id))
     _confirm(_use_json(ctx, as_json), {"deleted": webhook_id}, f"Deleted webhook {webhook_id}.")
+
+
+# -- Verb-first aliases --------------------------------------------------------------
+#
+# Every command above reads as "resource verb" (`studylife notes list`). Some people reach for
+# "verb resource" instead (`studylife list notes`) - both are registered here for exactly the
+# same underlying functions (a Typer @x.command() decorator hands back the plain function
+# unchanged, so re-registering it under a second Typer app is just a second entry pointing at
+# the same code, not a copy of it - no logic is duplicated, and a fix to one applies to both).
+# Search/history/timer already read naturally as a bare verb (only one resource each supports
+# them), so those get a single top-level command instead of a one-item dispatch group.
+list_app = typer.Typer(
+    no_args_is_help=True, help="List any resource (alias for `<resource> list`)."
+)
+create_app = typer.Typer(
+    no_args_is_help=True, help="Create a resource (alias for `<resource> create`)."
+)
+edit_app = typer.Typer(no_args_is_help=True, help="Edit a resource (alias for `<resource> edit`).")
+delete_app = typer.Typer(
+    no_args_is_help=True, help="Delete a resource (alias for `<resource> delete`)."
+)
+get_app = typer.Typer(
+    no_args_is_help=True, help="Get a single resource (alias for `<resource> get`)."
+)
+set_app = typer.Typer(no_args_is_help=True, help="Set a resource (alias for `<resource> set`).")
+
+list_app.command("notes")(notes_list)
+list_app.command("sessions")(sessions_list)
+list_app.command("goals")(goals_list)
+list_app.command("courses")(courses_list)
+list_app.command("programs")(programs_list)
+list_app.command("webhooks")(webhooks_list)
+app.add_typer(list_app, name="list")
+
+create_app.command("notes")(notes_create)
+create_app.command("sessions")(sessions_create)
+create_app.command("webhooks")(webhooks_create)
+app.add_typer(create_app, name="create")
+
+edit_app.command("notes")(notes_edit)
+edit_app.command("sessions")(sessions_edit)
+app.add_typer(edit_app, name="edit")
+
+delete_app.command("notes")(notes_delete)
+delete_app.command("sessions")(sessions_delete)
+delete_app.command("goals")(goals_delete)
+delete_app.command("webhooks")(webhooks_delete)
+app.add_typer(delete_app, name="delete")
+
+get_app.command("programs")(programs_get)
+app.add_typer(get_app, name="get")
+
+set_app.command("goals")(goals_set)
+app.add_typer(set_app, name="set")
+
+app.command("search")(notes_search)
+app.command("history")(sessions_history)
 
 
 def run() -> None:
