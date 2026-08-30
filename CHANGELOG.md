@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/lukislp/studylife-cli/compare/v1.2.0...v1.3.0) (2026-08-30)
+
+
+### Features
+
+* publish to PyPI on release via trusted publishing ([63b9a0a](https://github.com/lukislp/studylife-cli/commit/63b9a0a77067317491655e76cd5741c3a9b9cd22))
+
 # [1.2.0](https://github.com/lukislp/studylife-cli/compare/v1.1.1...v1.2.0) (2026-08-29)
 
 
