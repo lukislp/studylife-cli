@@ -186,6 +186,19 @@ def logout() -> None:
     console.print("Logged out.")
 
 
+@app.command()
+def whoami(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
+    """Show which StudyLife account and instance the stored credential belongs to."""
+    result = _run(ctx, lambda c: c.whoami())
+    credentials = load_credentials()
+    payload = {
+        "instance_url": credentials.instance_url if credentials else None,
+        "user_id": result.user_id,
+        "credential": result.credential,
+    }
+    _print(_use_json(ctx, as_json), [payload], "Whoami")
+
+
 # -- Notes --------------------------------------------------------------------------
 
 

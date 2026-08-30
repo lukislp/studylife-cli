@@ -99,6 +99,14 @@ class StudyProgramDetail(StudyLifeModel):
     group_ects_quotas: dict[str, int] = {}
 
 
+class Whoami(StudyLifeModel):
+    """GET /api/auth/whoami - resolves the real AuthUserId behind whatever credential is in use,
+    and which one matched (the session, or the API key slot's ClientId)."""
+
+    user_id: int
+    credential: str
+
+
 class Webhook(StudyLifeModel):
     """studylife-webhooks' own WebhookOut shape (id is a string there, not an int) - the server's
     WebhooksProxyController is a pure, un-typed reverse proxy for this, so it never appears in

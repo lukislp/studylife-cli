@@ -19,6 +19,7 @@ from studylife_cli.models import (
     StudyProgramSummary,
     TimerState,
     Webhook,
+    Whoami,
 )
 
 
@@ -47,6 +48,9 @@ class StudyLifeClient:
 
     def __exit__(self, *exc_info: object) -> None:
         self.close()
+
+    def whoami(self) -> Whoami:
+        return Whoami.model_validate(self._request("GET", "/api/auth/whoami").json())
 
     def _request(self, method: str, path: str, **kwargs: object) -> httpx.Response:
         response = self._http.request(method, path, **kwargs)
