@@ -7,10 +7,10 @@ and shells welcome.
 ## Install
 
 ```bash
-pip install git+https://github.com/lukislp/studylife-cli
+pip install studylife-cli
 ```
 
-(PyPI publishing is planned; until then, install straight from GitHub.)
+(or `pipx install studylife-cli` to keep it in its own isolated environment)
 
 ## Register the CLI on your instance
 
