@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/lukislp/studylife-cli/compare/v1.3.0...v1.4.0) (2026-08-30)
+
+
+### Features
+
+* add whoami command ([ddf3aeb](https://github.com/lukislp/studylife-cli/commit/ddf3aeb783b44065c4334e22159e2d03b90c4e32))
+
 # [1.3.0](https://github.com/lukislp/studylife-cli/compare/v1.2.0...v1.3.0) (2026-08-30)
 
 
