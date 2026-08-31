@@ -13,6 +13,7 @@ import httpx
 from studylife_cli.models import (
     Course,
     CourseGoal,
+    MetricsSummary,
     Note,
     Session,
     StudyProgramDetail,
@@ -155,6 +156,15 @@ class StudyLifeClient:
     def get_study_program(self, program_id: int) -> StudyProgramDetail:
         response = self._request("GET", f"/api/studyprograms/{program_id}")
         return StudyProgramDetail.model_validate(response.json())
+
+    def get_metrics_summary(self, program: int | None = None) -> MetricsSummary:
+        """Requires the Metrics.GetSummary scope, added to ApiKeyScopes.PubliclyGrantable
+        after this client was first written - an installation registered before that
+        raises ApiError(403) here, same as any other ungranted scope. program=0 asks
+        for the built-in study program specifically; omitted, the account's active one."""
+        params: dict[str, object] = {} if program is None else {"program": program}
+        response = self._request("GET", "/api/metrics/summary", params=params)
+        return MetricsSummary.model_validate(response.json())
 
     # -- Webhooks -------------------------------------------------------------------
 
