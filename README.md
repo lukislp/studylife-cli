@@ -1,8 +1,8 @@
 # studylife-cli
 
 A command-line client for [StudyLife](https://github.com/lukislp/studylife), the self-hosted
-study organizer. Manage notes, sessions, course goals, and webhooks from your terminal - scripts
-and shells welcome.
+study organizer. Manage notes, sessions, course goals, and webhooks from your terminal, get study
+time reports and exports, or watch a live dashboard - scripts and shells welcome.
 
 ## Install
 
@@ -54,6 +54,7 @@ studylife sessions create 2026-08-30T14:00:00 --end 2026-08-30T15:00:00 --title 
 
 studylife goals list
 studylife goals set 1 --target-ects 5
+studylife goals due --within-days 14
 
 studylife timer
 studylife courses list
@@ -63,6 +64,11 @@ studylife programs get 1
 studylife webhooks list
 studylife webhooks create https://example.com/hook session.completed
 studylife webhooks delete 3
+
+studylife report --period week
+studylife export ./backup --notes-format markdown
+
+studylife tui
 ```
 
 Add `--json` to any command for machine-readable output:
@@ -70,6 +76,15 @@ Add `--json` to any command for machine-readable output:
 ```bash
 studylife notes list --json | jq '.[] | .title'
 ```
+
+- `studylife goals due` - open goals with an upcoming (or overdue) target date, soonest first.
+- `studylife report` - study time by course for the past week or month, plus streak/ECTS
+  progress if the "Read metrics summary" scope is granted.
+- `studylife export` - back up notes, sessions, course goals, courses, and study programs to
+  local files (`--notes-format json|markdown`), independent of your instance operator's own
+  backups.
+- `studylife tui` - a live terminal dashboard (today's study time, running timer, next session,
+  open goals), auto-refreshing every 15s.
 
 ## Development
 
