@@ -436,6 +436,16 @@ def timer(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     _print(_use_json(ctx, as_json), [state.model_dump(mode="json")], "Timer state")
 
 
+@app.command()
+def tui() -> None:
+    """Live terminal dashboard - timer, today's/week's study time, next session,
+    goals, and (with the 'Read metrics summary' scope granted) streak and ECTS
+    progress. Press n to create a note, r to refresh, q to quit."""
+    from studylife_cli.tui import run as run_tui
+
+    run_tui()
+
+
 # -- Courses / study programs --------------------------------------------------------
 
 

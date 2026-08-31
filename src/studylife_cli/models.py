@@ -99,6 +99,43 @@ class StudyProgramDetail(StudyLifeModel):
     group_ects_quotas: dict[str, int] = {}
 
 
+class MetricsProgram(StudyLifeModel):
+    id: int | None = None
+    name: str
+    is_built_in: bool
+
+
+class MetricsStreak(StudyLifeModel):
+    current: int
+    longest: int
+
+
+class MetricsHours(StudyLifeModel):
+    week: float
+    month: float
+    total: float
+    total_sessions: int
+
+
+class MetricsEcts(StudyLifeModel):
+    earned: int
+    total: int
+
+
+class MetricsSummary(StudyLifeModel):
+    """GET /api/metrics/summary?program=0 - program=0 resolves the built-in study
+    program unconditionally, any other value/absence resolves the account's currently
+    active one (MetricsController.ResolveProgrammeAsync). Only the fields the TUI
+    actually shows are modeled here - the real DTO also carries WeekQuota/MonthQuota/
+    AverageGrade/Forecast/MonthComparison/NeglectedCourse/LastCompletedWeek, all
+    ignored by pydantic's default extra="ignore" behavior."""
+
+    program: MetricsProgram
+    streak: MetricsStreak
+    hours: MetricsHours
+    ects: MetricsEcts
+
+
 class Whoami(StudyLifeModel):
     """GET /api/auth/whoami - resolves the real AuthUserId behind whatever credential is in use,
     and which one matched (the session, or the API key slot's ClientId)."""
