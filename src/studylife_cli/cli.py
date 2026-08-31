@@ -480,6 +480,133 @@ def timer(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
     _print(_use_json(ctx, as_json), [state.model_dump(mode="json")], "Timer state")
 
 
+# -- Report -----------------------------------------------------------------------------
+
+_REPORT_PERIOD_DAYS = {"week": 7, "month": 30}
+
+
+@dataclass
+class CourseReportLine:
+    course_id: int
+    course_name: str
+    minutes: int
+    session_count: int
+
+
+def _report_format_duration(total_minutes: int) -> str:
+    if total_minutes < 60:
+        return f"{total_minutes}m"
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours}h {minutes}m" if minutes else f"{hours}h"
+
+
+def _build_course_breakdown(
+    sessions: list[Session], now: datetime | None = None
+) -> list[CourseReportLine]:
+    """Only counts sessions that have actually started - a purely future-scheduled
+    session contributes nothing to a report about what was actually studied. An
+    in-progress session (start_time in the past, end_time still in the future) counts
+    its elapsed time so far, same clamping logic as `studylife tui`'s own dashboard."""
+    now = now or datetime.now()
+    totals: dict[int, CourseReportLine] = {}
+    for session in sessions:
+        if session.start_time > now:
+            continue
+        end = min(session.end_time, now)
+        minutes = int(max(0.0, (end - session.start_time).total_seconds()) // 60)
+        line = totals.get(session.course_id)
+        if line is None:
+            line = CourseReportLine(
+                course_id=session.course_id,
+                course_name=session.course_name,
+                minutes=0,
+                session_count=0,
+            )
+            totals[session.course_id] = line
+        line.minutes += minutes
+        line.session_count += 1
+    return sorted(totals.values(), key=lambda line: line.minutes, reverse=True)
+
+
+@app.command()
+def report(
+    ctx: typer.Context,
+    period: str = typer.Option("week", "--period", help="'week' or 'month'."),
+    as_json: bool = JSON_OPTION,
+) -> None:
+    """A readable summary for the chosen period: total study time, a per-course
+    breakdown, and (with the 'Read metrics summary' scope granted) streak and ECTS
+    progress."""
+    if period not in _REPORT_PERIOD_DAYS:
+        error_console.print("[red]--period must be 'week' or 'month'.[/red]")
+        raise typer.Exit(1)
+    days = _REPORT_PERIOD_DAYS[period]
+
+    client = _require_client(ctx)
+    try:
+        sessions = client.session_history(days=days, only_completed=False)
+        summary = None
+        metrics_available = True
+        try:
+            summary = client.get_metrics_summary()
+        except ApiError:
+            metrics_available = False
+    except ApiError as exc:
+        error_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    finally:
+        client.close()
+
+    breakdown = _build_course_breakdown(sessions)
+    total_minutes = sum(line.minutes for line in breakdown)
+
+    if _use_json(ctx, as_json):
+        payload = {
+            "period": period,
+            "total_minutes": total_minutes,
+            "courses": [
+                {
+                    "course_id": line.course_id,
+                    "course_name": line.course_name,
+                    "minutes": line.minutes,
+                    "sessions": line.session_count,
+                }
+                for line in breakdown
+            ],
+            "metrics_available": metrics_available,
+            "streak_current": summary.streak.current if summary else None,
+            "ects_earned": summary.ects.earned if summary else None,
+            "ects_total": summary.ects.total if summary else None,
+        }
+        print(json_module.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    period_label = "this week" if period == "week" else "this month"
+    console.print(f"[bold]StudyLife report - {period_label}[/bold]")
+    console.print(f"Total study time: {_report_format_duration(total_minutes)}")
+    if summary is not None:
+        console.print(f"Current streak: {summary.streak.current} days")
+        if summary.ects.total:
+            console.print(
+                f"{summary.program.name}: {summary.ects.earned}/{summary.ects.total} ECTS"
+            )
+    else:
+        console.print("[dim]Grant the 'Read metrics summary' scope to also see streak/ECTS.[/dim]")
+
+    if breakdown:
+        table = Table(title="By course")
+        table.add_column("Course")
+        table.add_column("Time")
+        table.add_column("Sessions")
+        for line in breakdown:
+            table.add_row(
+                line.course_name, _report_format_duration(line.minutes), str(line.session_count)
+            )
+        console.print(table)
+    else:
+        console.print(f"No sessions {period_label}.")
+
+
 @app.command()
 def tui() -> None:
     """Live terminal dashboard - timer, today's/week's study time, next session,
