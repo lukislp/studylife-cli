@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/lukislp/studylife-cli/compare/v1.4.0...v1.5.0) (2026-08-31)
+
+
+### Features
+
+* add studylife tui - a live terminal dashboard ([1d6164b](https://github.com/lukislp/studylife-cli/commit/1d6164b566bc9af078637c18c95f2cf5c76ec1dc))
+
 # [1.4.0](https://github.com/lukislp/studylife-cli/compare/v1.3.0...v1.4.0) (2026-08-30)
 
 
