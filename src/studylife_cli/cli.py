@@ -6,6 +6,7 @@ import json as json_module
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -545,6 +546,100 @@ def webhooks_delete(ctx: typer.Context, webhook_id: str, as_json: bool = JSON_OP
     """Delete a webhook."""
     _run(ctx, lambda c: c.delete_webhook(webhook_id))
     _confirm(_use_json(ctx, as_json), {"deleted": webhook_id}, f"Deleted webhook {webhook_id}.")
+
+
+# -- Export -----------------------------------------------------------------------------
+
+
+def _slugify_note_filename(note: Note) -> str:
+    """<id>-<slug>.md - the id prefix guarantees uniqueness (two notes can share a
+    title), the slug keeps the filename human-readable. Non-alphanumeric characters
+    become hyphens; StudyLife content is arbitrary Unicode (see the Windows-codepage
+    comment near the top of this file), so this can't just assume ASCII."""
+    slug = "".join(c if c.isalnum() else "-" for c in note.title.strip().lower())
+    while "--" in slug:
+        slug = slug.replace("--", "-")
+    slug = slug.strip("-") or "untitled"
+    return f"{note.id}-{slug[:60]}.md"
+
+
+def _write_notes_as_markdown(notes: list[Note], notes_dir: Path) -> None:
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    for note in notes:
+        front_matter = "\n".join(
+            f"{key}: {value}"
+            for key, value in {
+                "title": note.title,
+                "course_id": note.course_id,
+                "created_at": note.created_at,
+                "updated_at": note.updated_at,
+                "tags": note.tags,
+            }.items()
+            if value is not None
+        )
+        content = f"---\n{front_matter}\n---\n\n{note.content}\n"
+        (notes_dir / _slugify_note_filename(note)).write_text(content, encoding="utf-8")
+
+
+def _write_json(resource_name: str, items: list[object], output_dir: Path) -> None:
+    payload = [item.model_dump(mode="json") for item in items]  # type: ignore[attr-defined]
+    # ensure_ascii=False - this is a personal backup meant to be human-readable if
+    # someone opens it directly; json.dumps' own default escapes every non-ASCII
+    # character into a \uXXXX sequence, which is valid JSON but unreadable for
+    # course/note content that's mostly German.
+    (output_dir / f"{resource_name}.json").write_text(
+        json_module.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+@app.command()
+def export(
+    ctx: typer.Context,
+    output_dir: Path = typer.Argument(
+        ..., help="Directory to write the export into (created if it doesn't exist)."
+    ),
+    notes_format: str = typer.Option(
+        "json",
+        "--notes-format",
+        help="'json' (default, one notes.json file) or 'markdown' (one .md file per "
+        "note under output_dir/notes/, with a small frontmatter header).",
+    ),
+) -> None:
+    """Export notes, sessions, course goals, courses, and study programs to local
+    files - a personal backup independent of whatever backup strategy your StudyLife
+    instance's operator runs. Every resource except notes is always written as JSON
+    (they're structured data, not prose - markdown wouldn't add anything)."""
+    if notes_format not in ("json", "markdown"):
+        error_console.print("[red]--notes-format must be 'json' or 'markdown'.[/red]")
+        raise typer.Exit(1)
+
+    client = _require_client(ctx)
+    try:
+        notes = client.list_notes()
+        sessions = client.list_sessions()
+        goals = client.list_course_goals()
+        courses = client.list_courses()
+        programs = client.list_study_programs()
+    except ApiError as exc:
+        error_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    finally:
+        client.close()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if notes_format == "markdown":
+        _write_notes_as_markdown(notes, output_dir / "notes")
+    else:
+        _write_json("notes", notes, output_dir)
+    _write_json("sessions", sessions, output_dir)
+    _write_json("goals", goals, output_dir)
+    _write_json("courses", courses, output_dir)
+    _write_json("study_programs", programs, output_dir)
+
+    console.print(
+        f"Exported {len(notes)} notes, {len(sessions)} sessions, {len(goals)} goals, "
+        f"{len(courses)} courses, and {len(programs)} study programs to {output_dir}."
+    )
 
 
 # -- Verb-first aliases --------------------------------------------------------------

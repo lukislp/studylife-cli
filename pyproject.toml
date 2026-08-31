@@ -56,6 +56,14 @@ select = [
 [tool.ruff.lint.isort]
 known-first-party = ["studylife_cli"]
 
+# B008 (function call in a default value) already exempts typer.Argument/typer.Option for
+# "simple" annotation types (str/int/...) but not e.g. Path - same safe pattern either way
+# (Typer itself calls the factory once per CLI invocation, never reused across calls the
+# way a real mutable-default bug would be), so extend the exemption explicitly instead of
+# a per-call `# noqa`.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Argument", "typer.Option"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
