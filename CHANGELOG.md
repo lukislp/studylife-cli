@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/lukislp/studylife-cli/compare/v1.5.0...v1.6.0) (2026-08-31)
+
+
+### Bug Fixes
+
+* write readable UTF-8 in --json output, not \uXXXX escapes ([8360eb9](https://github.com/lukislp/studylife-cli/commit/8360eb91018dda2a5e424c00ffc49ed715e088da))
+
+
+### Features
+
+* add studylife goals due ([73e47ab](https://github.com/lukislp/studylife-cli/commit/73e47abeb46fe55a6c188f830450d36956d21058))
+
 # [1.5.0](https://github.com/lukislp/studylife-cli/compare/v1.4.0...v1.5.0) (2026-08-31)
 
 
