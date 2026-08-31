@@ -124,7 +124,11 @@ def _print(
     than fit a terminal - e.g. a note's full content, or a session's course_color) - --json always
     returns every field regardless, since a table's readability limit doesn't apply there."""
     if as_json:
-        print(json_module.dumps(rows, indent=2, default=str))
+        # ensure_ascii=False - StudyLife content (course/note text) is mostly German;
+        # json.dumps' own default escapes every non-ASCII character into a \uXXXX
+        # sequence, technically valid JSON but unreadable for a human piping this to
+        # a file or terminal.
+        print(json_module.dumps(rows, indent=2, default=str, ensure_ascii=False))
         return
     if not rows:
         console.print(f"No {title.lower()}.")
@@ -143,7 +147,7 @@ def _confirm(as_json: bool, payload: dict[str, object], message: str) -> None:
     a delete, just its id) as JSON with --json, otherwise the same short human message every
     mutation command already printed."""
     if as_json:
-        print(json_module.dumps(payload, indent=2, default=str))
+        print(json_module.dumps(payload, indent=2, default=str, ensure_ascii=False))
     else:
         console.print(message)
 
