@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/lukislp/studylife-cli/compare/v1.7.0...v1.8.0) (2026-08-31)
+
+
+### Features
+
+* add studylife report ([a1d87ad](https://github.com/lukislp/studylife-cli/commit/a1d87adaf842550febd15c6164ade0456f62c221))
+
 # [1.7.0](https://github.com/lukislp/studylife-cli/compare/v1.6.0...v1.7.0) (2026-08-31)
 
 
