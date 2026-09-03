@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/lukislp/studylife-cli/compare/v1.8.0...v1.8.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **ci:** add Dependabot for github-actions, uv ([88fb895](https://github.com/lukislp/studylife-cli/commit/88fb895d4fae1404e1ee42c8bfb6e84253dc4ace))
+
 # [1.8.0](https://github.com/lukislp/studylife-cli/compare/v1.7.0...v1.8.0) (2026-08-31)
 
 
