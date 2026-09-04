@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           version: "0.5.8"
           cache-suffix: "lint"
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           version: "0.5.8"
           cache-suffix: "test"
@@ -128,7 +128,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0 # full history + tags, so hatch-vcs can find the tag just created
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           version: "0.5.8"
           cache-suffix: "publish"
