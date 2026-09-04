@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/lukislp/studylife-cli/compare/v1.8.1...v1.8.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** bump astral-sh/setup-uv from 9.0.0 to 10.0.1 ([d9cfaab](https://github.com/lukislp/studylife-cli/commit/d9cfaabb4df8a5a0d740b68ce56177d0912e6859))
+
 ## [1.8.1](https://github.com/lukislp/studylife-cli/compare/v1.8.0...v1.8.1) (2026-09-03)
 
 
