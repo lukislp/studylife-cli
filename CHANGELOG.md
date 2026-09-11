@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/lukislp/studylife-cli/compare/v1.8.3...v1.9.0) (2026-09-11)
+
+
+### Features
+
+* **login:** PKCE for the StudyLife connect round trip ([de702d8](https://github.com/lukislp/studylife-cli/commit/de702d8b4ecff987cc9e6901f1a30a93435a8629))
+
 ## [1.8.3](https://github.com/lukislp/studylife-cli/compare/v1.8.2...v1.8.3) (2026-09-11)
 
 
