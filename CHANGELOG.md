@@ -1,3 +1,10 @@
+## [1.8.3](https://github.com/lukislp/studylife-cli/compare/v1.8.2...v1.8.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* **ci:** push release commits as a deploy key so the default branch can be ruleset-protected ([deb7440](https://github.com/lukislp/studylife-cli/commit/deb7440b07cd58380deda44711e0bce342968c42))
+
 ## [1.8.2](https://github.com/lukislp/studylife-cli/compare/v1.8.1...v1.8.2) (2026-09-04)
 
 
