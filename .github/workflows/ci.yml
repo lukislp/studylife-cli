@@ -10,6 +10,11 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Least-privilege default for GITHUB_TOKEN (CodeQL actions/missing-workflow-permissions):
+# jobs that need more declare it themselves.
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest

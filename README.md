@@ -1,5 +1,7 @@
 # studylife-cli
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/lukislp/studylife-cli/badge)](https://scorecard.dev/viewer/?uri=github.com/lukislp/studylife-cli) [![CodeQL](https://github.com/lukislp/studylife-cli/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/lukislp/studylife-cli/security/code-scanning)
+
 A command-line client for [StudyLife](https://github.com/lukislp/studylife), the self-hosted
 study organizer. Manage notes, sessions, course goals, and webhooks from your terminal, get study
 time reports and exports, or watch a live dashboard - scripts and shells welcome.
