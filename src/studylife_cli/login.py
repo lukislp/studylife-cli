@@ -16,6 +16,8 @@ identity-contract-v1 §2 round trip this generalizes), with two real differences
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import hmac
 import secrets
 import sys
@@ -164,13 +166,22 @@ def run_login(
     LoginError on any failure - callers decide how to present that (CLI prints and exits 1)."""
     base_url = instance_url.rstrip("/")
     state_token = secrets.token_urlsafe(32)
+    # PKCE (RFC 7636): the assertion comes back through a browser redirect, and StudyLife only
+    # redeems it together with the verifier matching this challenge - so a copy of the redirect
+    # URL alone (browser history, a proxy log) is worthless to anyone but this process.
+    code_verifier, code_challenge = _new_pkce_pair()
 
     callback_server = _bind_first_free_port(candidate_ports)
     redirect_uri = f"http://127.0.0.1:{callback_server.port}/callback"
-    connect_url = (
-        f"{base_url}/connect/client/{client_id}?"
-        f"{urlencode({'redirect_uri': redirect_uri, 'state': state_token})}"
+    connect_query = urlencode(
+        {
+            "redirect_uri": redirect_uri,
+            "state": state_token,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        }
     )
+    connect_url = f"{base_url}/connect/client/{client_id}?{connect_query}"
 
     print(f"Opening your browser to log in to StudyLife:\n  {connect_url}")
     print("Waiting for you to finish logging in and approving the connection...")
@@ -197,12 +208,22 @@ def run_login(
             "been denied."
         )
 
-    user_id, api_key = _exchange_assertion(base_url, client_id, result.assertion)
+    user_id, api_key = _exchange_assertion(base_url, client_id, result.assertion, code_verifier)
     del user_id  # not needed locally - kept for symmetry with the server's response shape
     return Credentials(instance_url=base_url, client_id=client_id, api_key=api_key)
 
 
-def _exchange_assertion(base_url: str, client_id: str, assertion: str) -> tuple[int, str]:
+def _new_pkce_pair() -> tuple[str, str]:
+    """(code_verifier, code_challenge): 43 unreserved characters and the base64url SHA-256 of
+    them without padding, exactly the S256 shape StudyLife's connect endpoint validates."""
+    verifier = secrets.token_urlsafe(32)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return verifier, base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def _exchange_assertion(
+    base_url: str, client_id: str, assertion: str, code_verifier: str
+) -> tuple[int, str]:
     """Server-to-server exchange of the single-use assertion for the user id and a freshly
     issued, per-installation API key (generic flow - AuthController.10.OAuthClients.cs). No
     X-Api-Key is sent: this endpoint is [AllowAnonymous] by design, the assertion itself is the
@@ -210,7 +231,7 @@ def _exchange_assertion(base_url: str, client_id: str, assertion: str) -> tuple[
     try:
         response = httpx.post(
             f"{base_url}/api/auth/assertion-exchange",
-            json={"clientId": client_id, "assertion": assertion},
+            json={"clientId": client_id, "assertion": assertion, "codeVerifier": code_verifier},
             timeout=10.0,
         )
     except httpx.HTTPError as exc:

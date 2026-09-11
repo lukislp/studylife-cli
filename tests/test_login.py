@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import threading
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import urlopen
@@ -83,7 +85,16 @@ def test_run_login_completes_full_round_trip(monkeypatch: pytest.MonkeyPatch) ->
         return True
 
     def fake_post(url: str, json: dict[str, object], timeout: float) -> httpx.Response:
-        assert json == {"clientId": "studylife-cli", "assertion": "the-assertion"}
+        assert url == "https://studylife.example.com/api/auth/assertion-exchange"
+        assert json["clientId"] == "studylife-cli"
+        assert json["assertion"] == "the-assertion"
+        # PKCE: the verifier sent here must hash to the challenge the browser was sent with.
+        query = parse_qs(urlparse(opened_urls[0]).query)
+        assert query["code_challenge_method"] == ["S256"]
+        digest = hashlib.sha256(str(json["codeVerifier"]).encode("ascii")).digest()
+        assert query["code_challenge"] == [
+            base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+        ]
         return httpx.Response(200, json={"userId": 1, "apiKey": "the-api-key"})
 
     monkeypatch.setattr("studylife_cli.login.httpx.post", fake_post)
