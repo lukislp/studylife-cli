@@ -64,8 +64,12 @@ def _parse_callback_query(query_string: str) -> CallbackResult:
 
 def _states_match(received: str, expected: str) -> bool:
     """Constant-time comparison - the state isn't secret, but there's no reason to prefer a
-    timing-observable comparison over a safe one that's just as easy to write."""
-    return hmac.compare_digest(received, expected)
+    timing-observable comparison over a safe one that's just as easy to write.
+
+    Compared as UTF-8 bytes: hmac.compare_digest raises TypeError for str arguments with
+    non-ASCII characters, and `received` comes straight from whoever hits the loopback
+    callback URL (found by fuzz/fuzz_models_and_callback.py)."""
+    return hmac.compare_digest(received.encode("utf-8"), expected.encode("utf-8"))
 
 
 _CALLBACK_PAGE = """<!doctype html>

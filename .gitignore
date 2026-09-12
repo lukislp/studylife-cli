@@ -10,3 +10,8 @@ build/
 *.egg-info/
 .env
 credentials.json
+
+# libFuzzer crash artifacts written by fuzz/ harnesses
+crash-*
+leak-*
+timeout-*
