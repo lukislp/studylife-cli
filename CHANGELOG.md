@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/lukislp/studylife-cli/compare/v1.9.1...v1.9.2) (2026-09-12)
+
+
+### Bug Fixes
+
+* **login:** compare the callback state as bytes so non-ASCII input cannot crash the handler ([#23](https://github.com/lukislp/studylife-cli/issues/23)) ([4b8de15](https://github.com/lukislp/studylife-cli/commit/4b8de157801ee840c7081261cdd524746792283a))
+
 ## [1.9.1](https://github.com/lukislp/studylife-cli/compare/v1.9.0...v1.9.1) (2026-09-11)
 
 
