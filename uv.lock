@@ -405,7 +405,7 @@ wheels = [
 
 [[package]]
 name = "studylife-cli"
-version = "1.9.3.dev49+g2155e1655.d20260917"
+version = "1.9.3.dev50+gacdfe82f6.d20260917"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
