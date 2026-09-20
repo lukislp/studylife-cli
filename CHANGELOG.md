@@ -1,3 +1,10 @@
+## [1.9.5](https://github.com/lukislp/studylife-cli/compare/v1.9.4...v1.9.5) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** correct missing Harden Runner allowlist ports (github.com:22, crl:80) ([#44](https://github.com/lukislp/studylife-cli/issues/44)) ([7fc75a1](https://github.com/lukislp/studylife-cli/commit/7fc75a184b12cf1fc413d37c6a129150be531bad))
+
 ## [1.9.4](https://github.com/lukislp/studylife-cli/compare/v1.9.3...v1.9.4) (2026-09-20)
 
 
