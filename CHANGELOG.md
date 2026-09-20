@@ -1,3 +1,10 @@
+## [1.9.4](https://github.com/lukislp/studylife-cli/compare/v1.9.3...v1.9.4) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** add Harden Runner in audit mode to every job ([#42](https://github.com/lukislp/studylife-cli/issues/42)) ([be13fec](https://github.com/lukislp/studylife-cli/commit/be13fec38dc3418643f6f5a8b05e288df2ebd34f))
+
 ## [1.9.3](https://github.com/lukislp/studylife-cli/compare/v1.9.2...v1.9.3) (2026-09-17)
 
 
