@@ -210,7 +210,7 @@ jobs:
           git fetch origin main
           git checkout -B main origin/main
       - id: semrel
-        uses: lukislp/ci-workflows/.github/actions/semantic-release@0d352a3fab2ba9099b957c4164be2411f13786e8 # v1.7.12
+        uses: lukislp/ci-workflows/.github/actions/semantic-release@7a0ba9fb414f1f87d1efc30cf512ba8feba8cf72 # v1.7.14
         with:
           dry-run: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -280,7 +280,7 @@ jobs:
           git remote set-url origin "git@github.com:${{ github.repository }}.git"
           echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/semantic_release -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
       - id: semrel
-        uses: lukislp/ci-workflows/.github/actions/semantic-release@0d352a3fab2ba9099b957c4164be2411f13786e8 # v1.7.12
+        uses: lukislp/ci-workflows/.github/actions/semantic-release@7a0ba9fb414f1f87d1efc30cf512ba8feba8cf72 # v1.7.14
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -297,7 +297,7 @@ jobs:
           fi
           git checkout -B main origin/main
       - if: steps.semrel.outcome == 'failure'
-        uses: lukislp/ci-workflows/.github/actions/semantic-release@0d352a3fab2ba9099b957c4164be2411f13786e8 # v1.7.12
+        uses: lukislp/ci-workflows/.github/actions/semantic-release@7a0ba9fb414f1f87d1efc30cf512ba8feba8cf72 # v1.7.14
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
