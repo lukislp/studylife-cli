@@ -21,6 +21,7 @@ env:
 # Least-privilege default for GITHUB_TOKEN (CodeQL actions/missing-workflow-permissions):
 # jobs that need more declare it themselves.
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -148,165 +149,27 @@ jobs:
   get-version:
     needs: [lint, test]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    outputs:
-      published: ${{ steps.semrel.outputs.new_release_published }}
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
-        with:
-          egress-policy: block
-          allowed-endpoints: >
-            *.githubapp.com:443
-            *.blob.core.windows.net:443
-            api.github.com:443
-            files.pythonhosted.org:443
-            fulcio.sigstore.dev:443
-            ghcr.io:443
-            github.com:22
-            github.com:443
-            pkg-containers.githubusercontent.com:443
-            pypi.org:443
-            raw.githubusercontent.com:443
-            registry.npmjs.org:443
-            rekor.sigstore.dev:443
-            releases.astral.sh:443
-            results-receiver.actions.githubusercontent.com:443
-            run-actions-*.actions.githubusercontent.com:443
-            timestamp.sigstore.dev:443
-            tuf-repo-cdn.sigstore.dev:443
-            upload.pypi.org:443
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      # Ruleset bypass for the release commit (2026-09-11 main-protection rollout): main is
-      # protected by a ruleset (pull request + green test stage) that the GitHub Actions app
-      # cannot be a bypass actor for on a personal repository, so semantic-release pushes over
-      # SSH as a write-enabled DEPLOY KEY instead, which can. No-op while the secret is unset -
-      # the push then goes through the GITHUB_TOKEN https remote exactly as before. Needed in
-      # get-version too: @semantic-release/git's verifyConditions runs `git push --dry-run`
-      # even in dry-run mode. Same mechanism as lukislp/studylife's ci-cd.yml.
-      - name: Push as the semantic-release deploy key (if configured)
-        env:
-          DEPLOY_KEY: ${{ secrets.SEMANTIC_RELEASE_DEPLOY_KEY }}
-        run: |
-          if [ -z "$DEPLOY_KEY" ]; then
-            echo "SEMANTIC_RELEASE_DEPLOY_KEY is not set - semantic-release pushes with GITHUB_TOKEN"
-            exit 0
-          fi
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/semantic_release
-          chmod 600 ~/.ssh/semantic_release
-          # github.com's published ed25519 host key, pinned instead of ssh-keyscan'd at runtime:
-          # https://docs.github.com/en/authentication/keychain/githubs-ssh-key-fingerprints
-          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
-          git remote set-url origin "git@github.com:${{ github.repository }}.git"
-          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/semantic_release -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
-      - name: Sync to the current tip of main
-        run: |
-          git fetch origin main
-          git checkout -B main origin/main
-      - id: semrel
-        uses: lukislp/ci-workflows/.github/actions/semantic-release@ea532e9b173cf0e512c9d54c18886eebd0b0d1ab # v1.8.24
-        with:
-          dry-run: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: No release needed for this push
-        if: steps.semrel.outputs.new_release_published != 'true'
-        run: |
-          echo "No releasable commits since the last tag - semantic-release below skips itself via needs.get-version.outputs.published." | tee -a "$GITHUB_STEP_SUMMARY"
+    uses: lukislp/lktec-bot/.github/workflows/release.yml@0c0eccf67f1f06f21fd110626322a92c92e4cb82 # v0.1.1
+    with:
+      dry-run: true
+    secrets:
+      app-id: ${{ secrets.LKTEC_BOT_APP_ID }}
+      private-key: ${{ secrets.LKTEC_BOT_PRIVATE_KEY }}
 
-  semantic-release:
+  release:
     needs: [get-version]
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.get-version.outputs.published == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
-        with:
-          egress-policy: block
-          allowed-endpoints: >
-            *.githubapp.com:443
-            *.blob.core.windows.net:443
-            api.github.com:443
-            files.pythonhosted.org:443
-            fulcio.sigstore.dev:443
-            ghcr.io:443
-            github.com:22
-            github.com:443
-            pkg-containers.githubusercontent.com:443
-            pypi.org:443
-            raw.githubusercontent.com:443
-            registry.npmjs.org:443
-            rekor.sigstore.dev:443
-            releases.astral.sh:443
-            results-receiver.actions.githubusercontent.com:443
-            run-actions-*.actions.githubusercontent.com:443
-            timestamp.sigstore.dev:443
-            tuf-repo-cdn.sigstore.dev:443
-            upload.pypi.org:443
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      # Ruleset bypass for the release commit (2026-09-11 main-protection rollout): main is
-      # protected by a ruleset (pull request + green test stage) that the GitHub Actions app
-      # cannot be a bypass actor for on a personal repository, so semantic-release pushes over
-      # SSH as a write-enabled DEPLOY KEY instead, which can. No-op while the secret is unset -
-      # the push then goes through the GITHUB_TOKEN https remote exactly as before. Needed in
-      # get-version too: @semantic-release/git's verifyConditions runs `git push --dry-run`
-      # even in dry-run mode. Same mechanism as lukislp/studylife's ci-cd.yml.
-      - name: Push as the semantic-release deploy key (if configured)
-        env:
-          DEPLOY_KEY: ${{ secrets.SEMANTIC_RELEASE_DEPLOY_KEY }}
-        run: |
-          if [ -z "$DEPLOY_KEY" ]; then
-            echo "SEMANTIC_RELEASE_DEPLOY_KEY is not set - semantic-release pushes with GITHUB_TOKEN"
-            exit 0
-          fi
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/semantic_release
-          chmod 600 ~/.ssh/semantic_release
-          # github.com's published ed25519 host key, pinned instead of ssh-keyscan'd at runtime:
-          # https://docs.github.com/en/authentication/keychain/githubs-ssh-key-fingerprints
-          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
-          git remote set-url origin "git@github.com:${{ github.repository }}.git"
-          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/semantic_release -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
-      - id: semrel
-        uses: lukislp/ci-workflows/.github/actions/semantic-release@ea532e9b173cf0e512c9d54c18886eebd0b0d1ab # v1.8.24
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-      - if: steps.semrel.outcome == 'failure'
-        name: "Diagnose before retrying (expected: an out-of-band push landed since checkout)"
-        run: |
-          git fetch origin main
-          BEFORE_SHA="$(git rev-parse HEAD)"
-          AFTER_SHA="$(git rev-parse origin/main)"
-          if [ "$BEFORE_SHA" != "$AFTER_SHA" ]; then
-            echo "origin/main moved since checkout ($BEFORE_SHA -> $AFTER_SHA) - this matches the out-of-band-push race this retry is designed for."
-          else
-            echo "::warning::origin/main did NOT move since checkout - this failure is likely NOT the expected out-of-band-push race. Retrying anyway, but check the semantic-release log above for the real cause before assuming this is just a race."
-          fi
-          git checkout -B main origin/main
-      - if: steps.semrel.outcome == 'failure'
-        uses: lukislp/ci-workflows/.github/actions/semantic-release@ea532e9b173cf0e512c9d54c18886eebd0b0d1ab # v1.8.24
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.get-version.outputs.released == 'true'
+    uses: lukislp/lktec-bot/.github/workflows/release.yml@0c0eccf67f1f06f21fd110626322a92c92e4cb82 # v0.1.1
+    secrets:
+      app-id: ${{ secrets.LKTEC_BOT_APP_ID }}
+      private-key: ${{ secrets.LKTEC_BOT_PRIVATE_KEY }}
 
-  # Runs after semantic-release so the checkout below lands on the freshly tagged commit -
+  # Runs after the release job so the checkout below lands on the freshly tagged commit -
   # hatch-vcs then resolves an exact version (e.g. "1.2.0"), not a "*.dev0+g<hash>" one, which
   # is what a checkout of the pre-release commit would produce instead.
   publish-pypi:
-    needs: [get-version, semantic-release]
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.get-version.outputs.published == 'true'
+    needs: [get-version, release]
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: pypi
@@ -338,7 +201,7 @@ jobs:
             upload.pypi.org:443
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ needs.release.outputs.tag }}
           fetch-depth: 0 # full history + tags, so hatch-vcs can find the tag just created
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
