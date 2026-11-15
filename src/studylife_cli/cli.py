@@ -170,7 +170,7 @@ def _run(ctx: typer.Context, fn: object) -> object:
 @app.command()
 def login(
     instance_url: str = typer.Argument(
-        ..., help="Base URL of your StudyLife instance, e.g. https://studylife.example.com"
+        ..., help="Base URL of your StudyAtrium instance, e.g. https://studylife.example.com"
     ),
     client_id: str = typer.Option(
         DEFAULT_CLIENT_ID, help="ClientId this CLI was registered under via studylife-developers."
@@ -194,7 +194,7 @@ def logout() -> None:
 
 @app.command()
 def whoami(ctx: typer.Context, as_json: bool = JSON_OPTION) -> None:
-    """Show which StudyLife account and instance the stored credential belongs to."""
+    """Show which StudyAtrium account and instance the stored credential belongs to."""
     result = _run(ctx, lambda c: c.whoami())
     credentials = load_credentials()
     payload = {
@@ -582,7 +582,7 @@ def report(
         return
 
     period_label = "this week" if period == "week" else "this month"
-    console.print(f"[bold]StudyLife report - {period_label}[/bold]")
+    console.print(f"[bold]StudyAtrium report - {period_label}[/bold]")
     console.print(f"Total study time: {_report_format_duration(total_minutes)}")
     if summary is not None:
         console.print(f"Current streak: {summary.streak.current} days")

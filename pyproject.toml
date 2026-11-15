@@ -1,7 +1,7 @@
 [project]
 name = "studylife-cli"
 dynamic = ["version"]
-description = "Command-line client for StudyLife (self-hosted study organizer) - notes, sessions, course goals, and webhooks from your terminal."
+description = "Command-line client for StudyAtrium (self-hosted study organizer) - notes, sessions, course goals, and webhooks from your terminal."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

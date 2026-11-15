@@ -187,14 +187,14 @@ def run_login(
     )
     connect_url = f"{base_url}/connect/client/{client_id}?{connect_query}"
 
-    print(f"Opening your browser to log in to StudyLife:\n  {connect_url}")
+    print(f"Opening your browser to log in to StudyAtrium:\n  {connect_url}")
     print("Waiting for you to finish logging in and approving the connection...")
     open_browser(connect_url)
 
     result = callback_server.wait_for_callback(timeout_seconds)
     if result is None:
         raise LoginError(
-            f"Timed out after {int(timeout_seconds)}s waiting for StudyLife to redirect back. "
+            f"Timed out after {int(timeout_seconds)}s waiting for StudyAtrium to redirect back. "
             "Either the login/approval wasn't completed in the browser tab, or this client "
             f"isn't registered on that instance yet - see the README for how to register "
             f"'{client_id}' via studylife-developers first."
@@ -208,7 +208,7 @@ def run_login(
 
     if not result.assertion:
         raise LoginError(
-            "StudyLife's callback didn't include a login assertion - the connection may have "
+            "StudyAtrium's callback didn't include a login assertion - the connection may have "
             "been denied."
         )
 
@@ -239,18 +239,18 @@ def _exchange_assertion(
             timeout=10.0,
         )
     except httpx.HTTPError as exc:
-        raise LoginError(f"Could not reach StudyLife: {exc}") from exc
+        raise LoginError(f"Could not reach StudyAtrium: {exc}") from exc
 
     if response.status_code != 200:
         raise LoginError(
-            f"StudyLife rejected the login ({response.status_code}): {response.text.strip()}"
+            f"StudyAtrium rejected the login ({response.status_code}): {response.text.strip()}"
         )
 
     try:
         data = response.json()
         return int(data["userId"]), str(data["apiKey"])
     except (KeyError, TypeError, ValueError) as exc:
-        raise LoginError("StudyLife returned an unexpected response shape.") from exc
+        raise LoginError("StudyAtrium returned an unexpected response shape.") from exc
 
 
 def login_and_save(instance_url: str, client_id: str = DEFAULT_CLIENT_ID) -> Credentials:
