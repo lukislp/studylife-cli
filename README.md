@@ -1,11 +1,13 @@
-# studylife-cli
+# StudyAtrium CLI
+
+(formerly StudyLife)
 
 [![CI](https://github.com/lukislp/studylife-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/lukislp/studylife-cli/actions/workflows/ci.yml) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/lukislp/studylife-cli/badge)](https://scorecard.dev/viewer/?uri=github.com/lukislp/studylife-cli) [![CodeQL](https://github.com/lukislp/studylife-cli/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/lukislp/studylife-cli/security/code-scanning)
 [![Release](https://img.shields.io/github/v/release/lukislp/studylife-cli)](https://github.com/lukislp/studylife-cli/releases)
 [![License: AGPL-3.0](https://img.shields.io/github/license/lukislp/studylife-cli)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB)](https://www.python.org/)
 
-A command-line client for [StudyLife](https://github.com/lukislp/studylife), the self-hosted
+A command-line client for [StudyAtrium](https://github.com/lukislp/studylife), the self-hosted
 study organizer. Manage notes, sessions, course goals, and webhooks from your terminal, get study
 time reports and exports, or watch a live dashboard - scripts and shells welcome.
 
@@ -19,7 +21,7 @@ pip install studylife-cli
 
 ## Register the CLI on your instance
 
-`studylife-cli` connects to your StudyLife instance through the same add-on mechanism any
+`studylife-cli` connects to your StudyAtrium instance through the same add-on mechanism any
 third-party integration uses - there is no special-cased server support to set up. Register it
 once via your own [studylife-developers](https://github.com/lukislp/studylife-developers) portal:
 

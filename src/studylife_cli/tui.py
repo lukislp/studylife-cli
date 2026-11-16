@@ -132,7 +132,7 @@ class CreateNoteScreen(ModalScreen[tuple[str, str] | None]):
 
 
 class StudyLifeTUI(App[None]):
-    TITLE = "StudyLife"
+    TITLE = "StudyAtrium"
     CSS = """
     Screen { background: $background; }
     #stats { grid-size: 2; grid-gutter: 1 2; padding: 1 2; }

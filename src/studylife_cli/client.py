@@ -28,7 +28,7 @@ class ApiError(Exception):
     """Raised for any non-2xx response, carrying the status code and response body."""
 
     def __init__(self, status_code: int, body: str) -> None:
-        super().__init__(f"StudyLife API returned {status_code}: {body.strip()}")
+        super().__init__(f"StudyAtrium API returned {status_code}: {body.strip()}")
         self.status_code = status_code
         self.body = body
 
