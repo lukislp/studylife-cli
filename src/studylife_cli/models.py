@@ -1,4 +1,4 @@
-"""Pydantic models mirroring StudyLife's actual OpenAPI schemas (fetched live from
+"""Pydantic models mirroring StudyAtrium's actual OpenAPI schemas (fetched live from
 `/openapi/v1.json` and cross-checked against StudyLife.Shared/Dtos.cs - not reconstructed from
 memory, which previously produced wrong field names for StudySessionDto/CourseGoalDto).
 

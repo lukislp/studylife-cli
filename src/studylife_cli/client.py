@@ -1,4 +1,4 @@
-"""Typed HTTP client for the StudyLife REST API, scoped to what
+"""Typed HTTP client for the StudyAtrium REST API, scoped to what
 ApiKeyScopes.PubliclyGrantable actually allows a third-party client to do.
 
 No internal-CA-trust handling here (unlike studylife-mcp's client.py) - this talks to the
