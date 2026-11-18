@@ -1,4 +1,4 @@
-"""`studylife` - command-line client for a self-hosted StudyLife instance."""
+"""`studylife` - command-line client for a self-hosted StudyAtrium instance."""
 
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ app.add_typer(courses_app, name="courses")
 app.add_typer(programs_app, name="programs")
 app.add_typer(webhooks_app, name="webhooks")
 
-# StudyLife content (course icons, note text) is arbitrary Unicode, but Python's stdout/stderr
+# StudyAtrium content (course icons, note text) is arbitrary Unicode, but Python's stdout/stderr
 # on Windows default to the console's legacy OEM/ANSI codepage (e.g. cp1252) unless overridden -
 # printing anything outside that codepage then crashes the whole command with a
 # UnicodeEncodeError instead of just rendering oddly. errors="replace" trades a perfect glyph
-# for "never crashes on real StudyLife content" on whatever terminal this happens to run in.
+# for "never crashes on real StudyAtrium content" on whatever terminal this happens to run in.
 if sys.platform == "win32":
     for _stream in (sys.stdout, sys.stderr):
         if hasattr(_stream, "reconfigure"):
@@ -125,7 +125,7 @@ def _print(
     than fit a terminal - e.g. a note's full content, or a session's course_color) - --json always
     returns every field regardless, since a table's readability limit doesn't apply there."""
     if as_json:
-        # ensure_ascii=False - StudyLife content (course/note text) is mostly German;
+        # ensure_ascii=False - StudyAtrium content (course/note text) is mostly German;
         # json.dumps' own default escapes every non-ASCII character into a \uXXXX
         # sequence, technically valid JSON but unreadable for a human piping this to
         # a file or terminal.

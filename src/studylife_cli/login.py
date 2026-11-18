@@ -170,7 +170,7 @@ def run_login(
     LoginError on any failure - callers decide how to present that (CLI prints and exits 1)."""
     base_url = instance_url.rstrip("/")
     state_token = secrets.token_urlsafe(32)
-    # PKCE (RFC 7636): the assertion comes back through a browser redirect, and StudyLife only
+    # PKCE (RFC 7636): the assertion comes back through a browser redirect, and StudyAtrium only
     # redeems it together with the verifier matching this challenge - so a copy of the redirect
     # URL alone (browser history, a proxy log) is worthless to anyone but this process.
     code_verifier, code_challenge = _new_pkce_pair()
