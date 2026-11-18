@@ -102,6 +102,10 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+## Privacy
+
+See [PRIVACY.md](PRIVACY.md) for what the CLI stores and where data goes.
+
 ## License
 
 AGPL-3.0
